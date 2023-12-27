@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+  "log"
 	"net/http"
 	"testing"
 )
@@ -93,4 +95,60 @@ func TestShouldCreateDog(t *testing.T) {
 	}
 
 	fmt.Println(buffer.String())
+}
+
+type ResponseBodyPet struct {
+  ID int `json:"id"`
+  Category Category `json:"category"`
+}
+
+func TestShouldValidateResponse(t *testing.T) {
+	// montando o payload
+	payload := &PetRequestBody{
+		ID:   10,
+		Name: "dog",
+		Category: &Category{
+			ID:   1,
+			Name: "dogie",
+		},
+	}
+	// fazendo o parse da struct para json
+	payloadBytes, err := json.Marshal(payload)
+
+	if err != nil {
+		t.Fatal("An error occurred while trying to parse the payload")
+	}
+
+	// setando header e function para a request
+	headers := "application/json"
+	request, err := http.Post("https://petstore3.swagger.io/api/v3/pet", headers, bytes.NewBuffer(payloadBytes))
+
+	if err != nil {
+		t.Fatal("An error occurred while trying to parse the payload")
+	}
+
+	defer request.Body.Close()
+
+	if request.StatusCode != 200 {
+		t.Fatal("An error occurred while trying to parse the payload")
+	}
+ 
+  // lendo o response da request criada anteriomente
+  res, err := io.ReadAll(request.Body) 
+  if err != nil {
+    t.Fatalf("Ocorreu um erro ao ler response: %d", err)
+  }
+  // tipando o response
+  var pet ResponseBodyPet
+  err = json.Unmarshal(res, &pet)
+  if err != nil {
+    fmt.Println("Ocorreu um erro no unmarshelling do JSON: ", err)
+  }
+  
+  log.Println("Logando id do pet criado --")
+  log.Printf("Id do pet criado: %d", pet.ID)
+  
+  log.Println("Recebendo Id da categoria")
+  log.Printf("Id da categoria do pet: %d", pet.Category.ID)
+  
 }
